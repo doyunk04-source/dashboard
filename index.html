@@ -698,36 +698,70 @@ async function getYoutubeTranscript(videoId) {
   return null;
 }
 
-async function summarizeYoutubeWithGemini(title, channel, description, transcript) {
+async function summarizeYoutubeWithGemini(title, channel, description, transcript, videoUrl) {
   const key = getGeminiKey();
   if (!key) return null;
 
-  const hasTranscript = transcript && transcript.length > 100;
-  const prompt = hasTranscript
-    ? `다음 유튜브 영상 자막을 읽고 분석해줘.
+  const promptText = `다음 유튜브 영상의 실제 내용을 보고 분석해줘.
+
+제목: ${title}
+채널: ${channel}
+
+아래 JSON 형식으로만 답해줘 (다른 텍스트 없이):
+{"summary": "영상 내용 기반으로 3~4문장 한국어 요약. 핵심 주장과 인사이트 중심.", "tags": ["주제태그1", "주제태그2", "주제태그3"]}
+태그는 실제 영상 내용 기반 주제 3~5개, 한국어로. "유튜브" 같은 형식 태그는 제외.`;
+
+  // 1차 시도: YouTube URL을 file_data로 직접 전달 (Gemini가 영상 자체를 처리)
+  let usedDirectVideo = false;
+  let res;
+  if (videoUrl) {
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { file_data: { file_uri: videoUrl } },
+              { text: promptText },
+            ],
+          }],
+        }),
+      });
+      if (res.ok) usedDirectVideo = true;
+    } catch (e) {
+      console.warn('YouTube 직접 전달 실패, fallback:', e.message);
+    }
+  }
+
+  // 2차 시도: 자막 또는 제목/설명 텍스트 기반
+  if (!usedDirectVideo) {
+    const hasTranscript = transcript && transcript.length > 100;
+    const fallbackPrompt = hasTranscript
+      ? `다음 유튜브 영상 자막을 읽고 분석해줘.
 
 제목: ${title}
 채널: ${channel}
 자막: ${transcript.slice(0, 3000)}
 
-아래 JSON 형식으로만 답해줘 (다른 텍스트 없이):
-{"summary": "자막 내용 기반으로 3~4문장 한국어 요약. 핵심 주장과 인사이트 중심.", "tags": ["주제태그1", "주제태그2", "주제태그3"]}
-태그는 실제 내용 기반 주제 3~5개, 한국어로.`
-    : `다음 유튜브 영상 정보로 분석해줘.
+아래 JSON 형식으로만 답해줘:
+{"summary": "자막 기반 3~4문장 요약.", "tags": ["주제1", "주제2", "주제3"]}`
+      : `다음 유튜브 영상 정보로 분석해줘.
 
 제목: ${title}
 채널: ${channel}
 ${description ? `설명: ${description.slice(0, 600)}` : ''}
 
 아래 JSON 형식으로만 답해줘:
-{"summary": "3~4문장 한국어 요약.", "tags": ["주제태그1", "주제태그2", "주제태그3"]}
-태그는 실제 주제 3~5개, 한국어로.`;
+{"summary": "3~4문장 한국어 요약.", "tags": ["주제1", "주제2", "주제3"]}`;
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-  });
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: fallbackPrompt }] }] }),
+    });
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(()=>({}));
     throw new Error(err.error?.message || `Gemini 오류 (${res.status})`);
@@ -736,7 +770,8 @@ ${description ? `설명: ${description.slice(0, 600)}` : ''}
   const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) return null;
-  return { ...JSON.parse(match[0]), usedTranscript: hasTranscript };
+  console.log(usedDirectVideo ? '✅ Gemini가 영상 직접 분석' : '⚠️ Gemini가 텍스트 기반 분석');
+  return { ...JSON.parse(match[0]), usedTranscript: usedDirectVideo || (transcript && transcript.length > 100) };
 }
 
 // ── CLAUDE API ──
@@ -944,7 +979,7 @@ async function fetchMeta() {
     if (addType === 'youtube' && getGeminiKey()) {
       document.getElementById('loadingLabel').textContent = 'Gemini가 분석 중...';
       try {
-        const ai = await summarizeYoutubeWithGemini(meta.title, meta.creator, meta.description || '', meta.transcript || null);
+        const ai = await summarizeYoutubeWithGemini(meta.title, meta.creator, meta.description || '', meta.transcript || null, meta.url || fetchedUrl);
         if (ai) {
           meta.summary = ai.summary;
           meta.tags = ai.tags || meta.tags;
