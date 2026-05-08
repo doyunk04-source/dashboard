@@ -716,21 +716,30 @@ async function summarizeYoutubeWithGemini(title, channel, description, transcrip
   let res;
   if (videoUrl) {
     try {
+      // YouTube URL 정규화 (watch?v=ID 형식으로)
+      const vid = extractVideoId(videoUrl);
+      const canonicalUrl = vid ? `https://www.youtube.com/watch?v=${vid}` : videoUrl;
+
       res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           contents: [{
             parts: [
-              { file_data: { file_uri: videoUrl } },
+              { file_data: { mime_type: 'video/mp4', file_uri: canonicalUrl } },
               { text: promptText },
             ],
           }],
         }),
       });
-      if (res.ok) usedDirectVideo = true;
+      if (res.ok) {
+        usedDirectVideo = true;
+      } else {
+        const errBody = await res.json().catch(()=>({}));
+        console.warn('🔴 file_data 거절 (' + res.status + '):', errBody.error?.message || JSON.stringify(errBody));
+      }
     } catch (e) {
-      console.warn('YouTube 직접 전달 실패, fallback:', e.message);
+      console.warn('YouTube 직접 전달 실패:', e.message);
     }
   }
 
