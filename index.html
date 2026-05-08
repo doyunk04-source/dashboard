@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 지식 아카이브</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #6c8eff;
+    --accent2: #a78bfa;
+    --text: #e2e8f0;
+    --text-muted: #8b95b0;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --book: #f472b6;
+    --youtube: #fb7185;
+    --article: #34d399;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 24px 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  }
+  .logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); }
+  .logo h1 { font-size: 17px; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+  .logo p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+  .nav-section { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); padding: 12px 8px 6px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; color: var(--text-muted); transition: all 0.15s; user-select: none;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: #fff; font-weight: 600; }
+  .nav-item .badge { margin-left: auto; background: var(--surface2); border-radius: 999px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+  .nav-item.active .badge { background: rgba(255,255,255,0.2); }
+
+  .sidebar-bottom { padding: 12px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); }
+  .add-btn {
+    padding: 12px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center;
+    gap: 8px; box-shadow: 0 4px 16px rgba(108,142,255,0.3);
+  }
+  .add-btn:hover { opacity: 0.88; }
+  .settings-btn {
+    padding: 9px 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .settings-btn:hover { background: var(--surface2); color: var(--text); }
+  .api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); margin-left: auto; }
+  .api-dot.ok { background: var(--green); }
+
+  /* ── MAIN ── */
+  .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    padding: 18px 32px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; background: var(--surface); position: sticky; top: 0; z-index: 50;
+  }
+  .search-wrap { flex: 1; position: relative; }
+  .search-wrap input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 16px 9px 38px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--text-muted); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+  .filter-tabs { display: flex; gap: 6px; }
+  .filter-tab {
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text-muted); transition: all 0.15s;
+  }
+  .filter-tab:hover { background: var(--surface2); color: var(--text); }
+  .filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── CONTENT ── */
+  .content { padding: 28px 32px; flex: 1; }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+  .stat-card .num { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-card .label { font-size: 12px; color: var(--text-muted); }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-header h2 { font-size: 16px; font-weight: 600; }
+
+  /* ── GRID / CARD ── */
+  .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .item-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden;
+  }
+  .item-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .item-card[data-type="book"]::before    { background: var(--book); }
+  .item-card[data-type="youtube"]::before { background: var(--youtube); }
+  .item-card[data-type="article"]::before { background: var(--article); }
+  .item-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .type-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .type-badge.book    { background: rgba(244,114,182,0.15); color: var(--book); }
+  .type-badge.youtube { background: rgba(251,113,133,0.15); color: var(--youtube); }
+  .type-badge.article { background: rgba(52,211,153,0.15);  color: var(--article); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .status-dot.reading   { background: var(--yellow); }
+  .status-dot.completed { background: var(--green); }
+  .status-dot.want      { background: var(--text-muted); }
+
+  .card-title   { font-size: 15px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; }
+  .card-creator { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .card-summary {
+    font-size: 12px; color: var(--text-muted); line-height: 1.6; background: var(--surface2);
+    border-radius: 6px; padding: 8px 10px; margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .tag { background: var(--surface2); border-radius: 4px; padding: 2px 7px; font-size: 11px; color: var(--text-muted); }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+  .card-actions { display: flex; gap: 6px; }
+  .card-action-btn {
+    width: 26px; height: 26px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; transition: all 0.15s;
+  }
+  .card-action-btn.del:hover { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .empty-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* ── MODAL BASE ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000;
+    display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6); animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .modal-header { padding: 22px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h2 { font-size: 18px; font-weight: 700; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .modal-close:hover { background: var(--red); color: #fff; border-color: var(--red); }
+  .modal-body { padding: 20px 24px 24px; }
+
+  /* ── ADD MODAL ── */
+  .type-selector-big { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .type-btn {
+    border: 2px solid var(--border); border-radius: 12px; padding: 14px 8px;
+    text-align: center; cursor: pointer; transition: all 0.15s; color: var(--text-muted); background: var(--surface2);
+  }
+  .type-btn .tb-icon  { font-size: 26px; margin-bottom: 5px; }
+  .type-btn .tb-label { font-size: 13px; font-weight: 600; }
+  .type-btn .tb-hint  { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .type-btn:hover { border-color: var(--accent); color: var(--text); }
+  .type-btn.selected { border-color: var(--accent); background: rgba(108,142,255,0.1); }
+  .type-btn.selected .tb-label { color: var(--accent); }
+
+  /* Status selector in add modal */
+  .status-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .status-chip {
+    flex: 1; padding: 8px 6px; border-radius: 8px; border: 2px solid var(--border);
+    text-align: center; cursor: pointer; font-size: 12px; font-weight: 600;
+    transition: all 0.15s; color: var(--text-muted); background: transparent;
+  }
+  .status-chip:hover { border-color: var(--text-muted); color: var(--text); }
+  .status-chip.want.active      { border-color: var(--text-muted); color: var(--text); background: rgba(139,149,176,0.15); }
+  .status-chip.reading.active   { border-color: var(--yellow); color: var(--yellow); background: rgba(251,191,36,0.1); }
+  .status-chip.completed.active { border-color: var(--green); color: var(--green); background: rgba(74,222,128,0.1); }
+
+  .input-row { display: flex; gap: 8px; }
+  .input-row input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s; font-family: inherit;
+  }
+  .input-row input:focus { border-color: var(--accent); }
+  .input-row input::placeholder { color: var(--text-muted); }
+  .fetch-btn {
+    padding: 11px 18px; background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
+  }
+  .fetch-btn:hover { opacity: 0.85; }
+  .fetch-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .loading-state { text-align: center; padding: 28px 0; display: none; }
+  .loading-label { font-size: 13px; color: var(--text-muted); margin-top: 10px; }
+  .spinner {
+    width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Preview */
+  .preview-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 16px; display: none; }
+  .preview-card.show { display: block; }
+  .preview-section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .preview-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .ef { margin-bottom: 10px; }
+  .ef label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .ef input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.15s; font-family: inherit;
+  }
+  .ef input:focus { border-color: var(--accent); }
+
+  .summary-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-size: 13px; color: var(--text); line-height: 1.7;
+    margin-bottom: 10px; max-height: 140px; overflow-y: auto;
+  }
+  .summary-placeholder { color: var(--text-muted); font-style: italic; }
+
+  .auto-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .auto-tag {
+    background: rgba(108,142,255,0.12); border: 1px solid rgba(108,142,255,0.3);
+    border-radius: 5px; padding: 3px 9px; font-size: 12px; color: var(--accent);
+    cursor: pointer; transition: all 0.12s;
+  }
+  .auto-tag:hover { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.4); color: var(--red); text-decoration: line-through; }
+  .auto-tag.removed { display: none; }
+
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+  .btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s; }
+  .btn-ghost { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn:hover { opacity: 0.8; }
+
+  .error-msg { font-size: 12px; color: var(--red); margin-top: 8px; display: none; }
+  .error-msg.show { display: block; }
+
+  /* ── DETAIL MODAL ── */
+  .detail-modal { max-width: 600px; }
+  .detail-type-bar { padding: 0 24px 14px; display: flex; align-items: center; gap: 10px; }
+  .detail-title { font-size: 21px; font-weight: 700; line-height: 1.35; margin-bottom: 5px; }
+  .detail-creator { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  .detail-url {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+    color: var(--accent); text-decoration: none; margin-bottom: 18px;
+  }
+  .detail-url:hover { text-decoration: underline; }
+
+  .detail-summary {
+    background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+    padding: 14px 16px; font-size: 14px; line-height: 1.8; color: var(--text); margin-bottom: 20px;
+  }
+  .detail-summary-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 8px; }
+
+  .sec-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .status-selector { display: flex; gap: 8px; margin-bottom: 18px; }
+  .status-opt {
+    flex: 1; padding: 8px; border-radius: 8px; border: 2px solid var(--border);
+    text-align: center; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s; color: var(--text-muted);
+  }
+  .status-opt:hover { border-color: var(--text-muted); color: var(--text); }
+  .status-opt.want.active      { border-color: var(--text-muted); color: var(--text); background: rgba(139,149,176,0.15); }
+  .status-opt.reading.active   { border-color: var(--yellow); color: var(--yellow); background: rgba(251,191,36,0.1); }
+  .status-opt.completed.active { border-color: var(--green); color: var(--green); background: rgba(74,222,128,0.1); }
+
+  .rating-wrap { display: flex; gap: 4px; margin-bottom: 18px; }
+  .star { font-size: 22px; cursor: pointer; color: var(--border); transition: color 0.1s; }
+  .star.active, .star:hover { color: var(--yellow); }
+
+  .tag-input-wrap { display: flex; gap: 8px; }
+  .tag-input-wrap input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.15s; font-family: inherit;
+  }
+  .tag-input-wrap input:focus { border-color: var(--accent); }
+  .tag-add-btn {
+    padding: 9px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-muted); cursor: pointer; font-size: 13px; white-space: nowrap; transition: all 0.15s;
+  }
+  .tag-add-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tags-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag-item {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 3px 8px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px;
+  }
+  .tag-remove { cursor: pointer; color: var(--text-muted); font-size: 14px; line-height: 1; }
+  .tag-remove:hover { color: var(--red); }
+
+  .notes-area {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    min-height: 110px; font-size: 14px; color: var(--text); line-height: 1.7; width: 100%;
+    resize: vertical; font-family: inherit; outline: none; transition: border-color 0.15s;
+  }
+  .notes-area:focus { border-color: var(--accent); }
+
+  /* ── SETTINGS MODAL ── */
+  .settings-modal { max-width: 420px; }
+  .settings-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+  .settings-desc a { color: var(--accent); }
+  .settings-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s;
+    font-family: monospace; margin-bottom: 6px;
+  }
+  .settings-input:focus { border-color: var(--accent); }
+  .settings-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 16px; }
+  .api-status-badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    padding: 4px 10px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .api-status-badge.ok { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+  .api-status-badge.no { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; font-size: 14px; box-shadow: var(--shadow); z-index: 9999;
+    transform: translateY(100px); opacity: 0; transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error   { border-left: 3px solid var(--red); }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="logo">
+    <h1>📚 지식 아카이브</h1>
+    <p>배운 것들을 기록하세요</p>
+  </div>
+  <div class="nav">
+    <div class="nav-section">보기</div>
+    <div class="nav-item active" onclick="setFilter('all',this)">🗂️ 전체 <span class="badge" id="badge-all">0</span></div>
+    <div class="nav-item" onclick="setFilter('reading',this)">📖 진행 중 <span class="badge" id="badge-reading">0</span></div>
+    <div class="nav-item" onclick="setFilter('completed',this)">✅ 완료 <span class="badge" id="badge-completed">0</span></div>
+    <div class="nav-item" onclick="setFilter('want',this)">🔖 나중에 볼 것 <span class="badge" id="badge-want">0</span></div>
+    <div class="nav-section" style="margin-top:8px">타입</div>
+    <div class="nav-item" onclick="setFilter('book',this)">📘 책 <span class="badge" id="badge-book">0</span></div>
+    <div class="nav-item" onclick="setFilter('youtube',this)">🎬 유튜브 <span class="badge" id="badge-youtube">0</span></div>
+    <div class="nav-item" onclick="setFilter('article',this)">📰 아티클 <span class="badge" id="badge-article">0</span></div>
+  </div>
+  <div class="sidebar-bottom">
+    <button class="add-btn" onclick="openAddModal()">➕ 새 항목 추가</button>
+    <button class="settings-btn" onclick="openSettings()">
+      ⚙️ Claude API 설정
+      <span class="api-dot" id="apiDot"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="topbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="제목, 저자, 태그로 검색..." oninput="renderItems()">
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="setSort('newest',this)">최신순</button>
+      <button class="filter-tab" onclick="setSort('oldest',this)">오래된순</button>
+      <button class="filter-tab" onclick="setSort('rating',this)">평점순</button>
+      <button class="filter-tab" onclick="setSort('title',this)">제목순</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stats-row">
+      <div class="stat-card"><div class="num" id="stat-total" style="color:var(--accent)">0</div><div class="label">전체</div></div>
+      <div class="stat-card"><div class="num" id="stat-completed" style="color:var(--green)">0</div><div class="label">완료</div></div>
+      <div class="stat-card"><div class="num" id="stat-reading" style="color:var(--yellow)">0</div><div class="label">진행 중</div></div>
+      <div class="stat-card"><div class="num" id="stat-notes" style="color:var(--accent2)">0</div><div class="label">메모 수</div></div>
+      <div class="stat-card"><div class="num" id="stat-rating" style="color:var(--yellow)">-</div><div class="label">평균 평점</div></div>
+    </div>
+    <div class="section-header">
+      <h2 id="section-title">전체 아이템</h2>
+      <div style="font-size:13px;color:var(--text-muted)" id="item-count">0개</div>
+    </div>
+    <div class="items-grid" id="itemsGrid"></div>
+  </div>
+</div>
+
+<!-- ── ADD MODAL ── -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>새 항목 추가</h2>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 1. Type -->
+      <div class="type-selector-big">
+        <div class="type-btn selected" data-type="book" onclick="selectAddType('book',this)">
+          <div class="tb-icon">📘</div>
+          <div class="tb-label">책</div>
+          <div class="tb-hint">제목 입력</div>
+        </div>
+        <div class="type-btn" data-type="youtube" onclick="selectAddType('youtube',this)">
+          <div class="tb-icon">🎬</div>
+          <div class="tb-label">유튜브</div>
+          <div class="tb-hint">URL 붙여넣기</div>
+        </div>
+        <div class="type-btn" data-type="article" onclick="selectAddType('article',this)">
+          <div class="tb-icon">📰</div>
+          <div class="tb-label">아티클</div>
+          <div class="tb-hint">URL 붙여넣기</div>
+        </div>
+      </div>
+
+      <!-- 2. Status -->
+      <div class="status-row">
+        <div class="status-chip want" onclick="selectAddStatus('want',this)">🔖 나중에</div>
+        <div class="status-chip reading active" onclick="selectAddStatus('reading',this)">📖 진행 중</div>
+        <div class="status-chip completed" onclick="selectAddStatus('completed',this)">✅ 완료</div>
+      </div>
+
+      <!-- 3. Input -->
+      <div class="input-row">
+        <input type="text" id="addInput" placeholder="책 제목을 입력하세요" onkeydown="if(event.key==='Enter')fetchMeta()">
+        <button class="fetch-btn" id="fetchBtn" onclick="fetchMeta()">가져오기 →</button>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <div class="loading-label" id="loadingLabel">정보를 가져오는 중...</div>
+      </div>
+
+      <!-- Preview -->
+      <div class="preview-card" id="previewCard">
+        <div class="preview-section-label">자동 완성 결과</div>
+        <div class="ef"><label>제목</label><input type="text" id="previewTitle"></div>
+        <div class="ef"><label id="creatorLabel">저자</label><input type="text" id="previewCreator"></div>
+
+        <div class="ef">
+          <label>요약</label>
+          <div class="summary-box" id="previewSummary"></div>
+        </div>
+
+        <div class="ef">
+          <label>태그 (클릭하면 제거)</label>
+          <div class="auto-tags" id="autoTags"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="resetAdd()">← 다시</button>
+          <button class="btn btn-primary" onclick="saveFromPreview()">저장하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DETAIL MODAL ── -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal detail-modal">
+    <div class="modal-header"><div></div><button class="modal-close" onclick="closeDetailModal()">✕</button></div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- ── SETTINGS MODAL ── -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal settings-modal">
+    <div class="modal-header">
+      <h2>⚙️ API 설정</h2>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Gemini -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          🎬 Gemini API <span style="font-size:11px;color:var(--green);font-weight:400">무료</span>
+        </div>
+        <p class="settings-desc">유튜브 영상을 직접 보고 요약 + 태그를 달아줍니다.<br>
+          <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → Get API Key (카드 등록 불필요)
+        </p>
+        <div id="geminiStatusBadge" class="api-status-badge no">● 키 없음</div>
+        <input type="password" class="settings-input" id="geminiKeyInput" placeholder="AIzaSy...">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-ghost" style="flex:1" onclick="clearGeminiKey()">삭제</button>
+          <button class="btn btn-primary" style="flex:1" onclick="saveGeminiKey()">저장</button>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">📘 Claude API</div>
+        <p class="settings-desc">책·아티클 요약 + 태그에 사용됩니다.<br>
+          <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys
+        </p>
+        <div id="apiStatusBadge" class="api-status-badge no">● 키 없음</div>
+        <input type="password" class="settings-input" id="apiKeyInput" placeholder="sk-ant-api03-...">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-ghost" style="flex:1" onclick="clearApiKey()">삭제</button>
+          <button class="btn btn-primary" style="flex:1" onclick="saveApiKey()">저장</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let items = JSON.parse(localStorage.getItem('archiveItems') || '[]');
+let currentFilter = 'all';
+let currentSort = 'newest';
+let currentDetailId = null;
+let detailTags = [];
+let detailRating = 0;
+
+// Add modal state
+let addType = 'book';
+let addStatus = 'reading';
+let pendingTags = [];
+let removedTagIdx = new Set();
+let fetchedUrl = '';
+let fetchedSummary = '';
+
+// ── UTIL ──
+function save() { localStorage.setItem('archiveItems', JSON.stringify(items)); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const TYPE_META = {
+  book:    { icon: '📘', label: '책' },
+  youtube: { icon: '🎬', label: '유튜브' },
+  article: { icon: '📰', label: '아티클' },
+};
+const STATUS_META = {
+  want:      { icon: '🔖', label: '나중에' },
+  reading:   { icon: '📖', label: '진행 중' },
+  completed: { icon: '✅', label: '완료' },
+};
+
+// ── API KEYS ──
+function getApiKey()    { return localStorage.getItem('claudeApiKey')  || ''; }
+function getGeminiKey() { return localStorage.getItem('geminiApiKey')  || ''; }
+
+function updateApiDot() {
+  const has = !!getApiKey() || !!getGeminiKey();
+  document.getElementById('apiDot').className = 'api-dot' + (has ? ' ok' : '');
+}
+
+function openSettings() {
+  const cKey = getApiKey();
+  const gKey = getGeminiKey();
+
+  // 키가 있으면 입력칸 비워두고 placeholder로 안내
+  const gInput = document.getElementById('geminiKeyInput');
+  const cInput = document.getElementById('apiKeyInput');
+  gInput.value = '';
+  cInput.value = '';
+  gInput.placeholder = gKey ? '저장됨 — 변경하려면 새 키 입력' : 'AIzaSy...';
+  cInput.placeholder = cKey ? '저장됨 — 변경하려면 새 키 입력' : 'sk-ant-api03-...';
+
+  const cb = document.getElementById('apiStatusBadge');
+  cb.className = 'api-status-badge ' + (cKey ? 'ok' : 'no');
+  cb.textContent = cKey ? '● 키 설정됨' : '● 키 없음';
+
+  const gb = document.getElementById('geminiStatusBadge');
+  gb.className = 'api-status-badge ' + (gKey ? 'ok' : 'no');
+  gb.textContent = gKey ? '● 키 설정됨' : '● 키 없음';
+
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val || val.includes('...')) { showToast('Claude API 키를 입력해주세요', 'error'); return; }
+  localStorage.setItem('claudeApiKey', val);
+  updateApiDot(); showToast('Claude API 키 저장됐습니다 ✅'); closeSettings();
+}
+function clearApiKey() {
+  localStorage.removeItem('claudeApiKey');
+  updateApiDot(); showToast('Claude API 키 삭제됐습니다'); closeSettings();
+}
+function saveGeminiKey() {
+  const val = document.getElementById('geminiKeyInput').value.trim();
+  if (!val) {
+    // 빈칸이면 기존 키 유지
+    if (getGeminiKey()) { showToast('기존 키 유지됩니다'); closeSettings(); }
+    else { showToast('Gemini API 키를 입력해주세요', 'error'); }
+    return;
+  }
+  localStorage.setItem('geminiApiKey', val);
+  updateApiDot(); showToast('Gemini API 키 저장됐습니다 ✅'); closeSettings();
+}
+function clearGeminiKey() {
+  localStorage.removeItem('geminiApiKey');
+  updateApiDot(); showToast('Gemini API 키 삭제됐습니다'); closeSettings();
+}
+
+// ── GEMINI API (YouTube 전용) ──
+// YouTube 자막 자동 추출
+function extractVideoId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+async function fetchViaProxy(url) {
+  const isVercel = window.location.protocol !== 'file:';
+
+  if (isVercel) {
+    // Vercel 배포 환경: 서버리스 함수로 직접 요청 (CORS 없음)
+    try {
+      const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      if (res.ok) return await res.text();
+    } catch(e) { console.warn('Vercel proxy 실패:', e.message); }
+    return null;
+  }
+
+  // 로컬(file://) 환경: 외부 CORS 프록시 시도
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl);
+      if (!res.ok) continue;
+      const text = await res.text();
+      // allorigins는 {"contents":"..."} 형식, 나머지는 raw
+      try {
+        const json = JSON.parse(text);
+        if (json.contents !== undefined) return json.contents;
+        return text;
+      } catch { return text; }
+    } catch { continue; }
+  }
+  return null;
+}
+
+async function getYoutubeTranscript(videoId) {
+  const langs = ['ko', 'en', 'a.ko', 'a.en'];
+  const isVercel = window.location.protocol !== 'file:';
+
+  for (const lang of langs) {
+    try {
+      let content;
+
+      if (isVercel) {
+        // Vercel 배포 환경: 서버리스 함수로 자막 요청
+        const res = await fetch(`/api/transcript?videoId=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(lang)}`);
+        if (!res.ok) continue;
+        content = await res.text();
+      } else {
+        // 로컬 환경: CORS 프록시 경유 (제한적)
+        const timedtextUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`;
+        content = await fetchViaProxy(timedtextUrl);
+      }
+
+      if (!content) continue;
+      let parsed;
+      try { parsed = JSON.parse(content); } catch { continue; }
+      if (!parsed.events?.length) continue;
+      const text = parsed.events
+        .filter(e => e.segs)
+        .map(e => e.segs.map(s => s.utf8 || '').join(''))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (text.length > 100) {
+        console.log(`✅ 자막 획득 (${lang}), ${text.length}자`);
+        return text;
+      }
+    } catch(e) { console.log(`자막 시도 실패 (${lang}):`, e.message); continue; }
+  }
+  console.log('❌ 자막 없음 — 제목 기반으로 fallback');
+  return null;
+}
+
+async function summarizeYoutubeWithGemini(title, channel, description, transcript) {
+  const key = getGeminiKey();
+  if (!key) return null;
+
+  const hasTranscript = transcript && transcript.length > 100;
+  const prompt = hasTranscript
+    ? `다음 유튜브 영상 자막을 읽고 분석해줘.
+
+제목: ${title}
+채널: ${channel}
+자막: ${transcript.slice(0, 3000)}
+
+아래 JSON 형식으로만 답해줘 (다른 텍스트 없이):
+{"summary": "자막 내용 기반으로 3~4문장 한국어 요약. 핵심 주장과 인사이트 중심.", "tags": ["주제태그1", "주제태그2", "주제태그3"]}
+태그는 실제 내용 기반 주제 3~5개, 한국어로.`
+    : `다음 유튜브 영상 정보로 분석해줘.
+
+제목: ${title}
+채널: ${channel}
+${description ? `설명: ${description.slice(0, 600)}` : ''}
+
+아래 JSON 형식으로만 답해줘:
+{"summary": "3~4문장 한국어 요약.", "tags": ["주제태그1", "주제태그2", "주제태그3"]}
+태그는 실제 주제 3~5개, 한국어로.`;
+
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error?.message || `Gemini 오류 (${res.status})`);
+  }
+  const data = await res.json();
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  return { ...JSON.parse(match[0]), usedTranscript: hasTranscript };
+}
+
+// ── CLAUDE API ──
+async function callClaude(prompt) {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error?.message || `API 오류 (${res.status})`);
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+async function aiSummarize(type, title, creator, description) {
+  const typeStr = { book:'책', youtube:'유튜브 영상', article:'아티클' }[type] || '콘텐츠';
+  const prompt = `다음 ${typeStr}을 분석해줘.
+
+제목: ${title}
+${creator ? `저자/채널/출처: ${creator}` : ''}
+${description ? `설명: ${description.slice(0, 800)}` : ''}
+
+아래 JSON 형식으로만 답해줘 (다른 텍스트 없이):
+{"summary": "3~4문장의 한국어 요약. 이 콘텐츠의 핵심 주제와 배울 수 있는 것을 중심으로.", "tags": ["주제태그1", "주제태그2", "주제태그3"]}
+
+태그는 이 콘텐츠의 실제 주제를 3~5개 한국어로. "유튜브", "책", "아티클" 같은 형식 태그는 제외.`;
+
+  const raw = await callClaude(prompt);
+  if (!raw) return null;
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  return JSON.parse(match[0]);
+}
+
+// ── FILTER / SORT ──
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  const t = { all:'전체 아이템', reading:'진행 중', completed:'완료', want:'나중에 볼 것', book:'책', youtube:'유튜브', article:'아티클' };
+  document.getElementById('section-title').textContent = t[f] || f;
+  renderItems();
+}
+function setSort(s, el) {
+  currentSort = s;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderItems();
+}
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let arr = [...items];
+  if (['reading','completed','want'].includes(currentFilter)) arr = arr.filter(i => i.status === currentFilter);
+  else if (currentFilter !== 'all') arr = arr.filter(i => i.type === currentFilter);
+  if (q) arr = arr.filter(i =>
+    i.title.toLowerCase().includes(q) ||
+    (i.creator||'').toLowerCase().includes(q) ||
+    (i.summary||'').toLowerCase().includes(q) ||
+    (i.tags||[]).some(t => t.toLowerCase().includes(q))
+  );
+  if (currentSort === 'newest') arr.sort((a,b) => b.createdAt - a.createdAt);
+  else if (currentSort === 'oldest') arr.sort((a,b) => a.createdAt - b.createdAt);
+  else if (currentSort === 'rating') arr.sort((a,b) => (b.rating||0) - (a.rating||0));
+  else if (currentSort === 'title') arr.sort((a,b) => a.title.localeCompare(b.title));
+  return arr;
+}
+
+// ── RENDER ──
+function renderItems() {
+  const filtered = getFiltered();
+  document.getElementById('item-count').textContent = `${filtered.length}개`;
+  document.getElementById('stat-total').textContent = items.length;
+  document.getElementById('stat-completed').textContent = items.filter(i=>i.status==='completed').length;
+  document.getElementById('stat-reading').textContent = items.filter(i=>i.status==='reading').length;
+  document.getElementById('stat-notes').textContent = items.filter(i=>i.note&&i.note.trim()).length;
+  const rated = items.filter(i=>i.rating>0);
+  document.getElementById('stat-rating').textContent = rated.length
+    ? (rated.reduce((s,i)=>s+i.rating,0)/rated.length).toFixed(1)+'★' : '-';
+
+  ['all','reading','completed','want','book','youtube','article'].forEach(f => {
+    const el = document.getElementById('badge-'+f); if(!el) return;
+    if (f==='all') el.textContent = items.length;
+    else if (['reading','completed','want'].includes(f)) el.textContent = items.filter(i=>i.status===f).length;
+    else el.textContent = items.filter(i=>i.type===f).length;
+  });
+
+  const grid = document.getElementById('itemsGrid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">🗂️</div>
+      <h3>아직 아이템이 없어요</h3>
+      <p>왼쪽 하단의 "새 항목 추가" 버튼으로<br>첫 번째 콘텐츠를 기록해보세요!</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(item => {
+    const tm = TYPE_META[item.type]||{};
+    const sm = STATUS_META[item.status]||{};
+    const stars = item.rating ? '★'.repeat(item.rating)+'☆'.repeat(5-item.rating) : '';
+    const tagsHtml = (item.tags||[]).slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+    const bodyHtml = item.summary
+      ? `<div class="card-summary">${esc(item.summary)}</div>`
+      : (item.note ? `<div class="card-summary">${esc(item.note)}</div>` : '');
+    return `<div class="item-card" data-type="${item.type}" onclick="openDetail('${item.id}')">
+      <div class="card-top">
+        <span class="type-badge ${item.type}">${tm.icon} ${tm.label}</span>
+        <span class="status-dot ${item.status}" title="${sm.label}"></span>
+      </div>
+      <div class="card-title">${esc(item.title)}</div>
+      ${item.creator?`<div class="card-creator">${esc(item.creator)}</div>`:''}
+      ${bodyHtml}
+      ${tagsHtml?`<div class="card-tags">${tagsHtml}</div>`:''}
+      <div class="card-footer">
+        <span>${sm.icon} ${sm.label}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${stars?`<span style="color:var(--yellow);font-size:11px">${stars}</span>`:''}
+          <div class="card-actions" onclick="event.stopPropagation()">
+            <button class="card-action-btn del" onclick="deleteItem('${item.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ADD MODAL ──
+function openAddModal() {
+  resetAdd();
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(() => document.getElementById('addInput').focus(), 100);
+}
+function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
+
+function selectAddType(t, el) {
+  addType = t;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  const ph = { book:'책 제목을 입력하세요', youtube:'유튜브 URL을 붙여넣으세요', article:'아티클 URL을 붙여넣으세요' };
+  document.getElementById('addInput').placeholder = ph[t];
+  resetPreview();
+}
+
+function selectAddStatus(s, el) {
+  addStatus = s;
+  document.querySelectorAll('.status-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function resetAdd() {
+  addType = 'book'; addStatus = 'reading';
+  pendingTags = []; removedTagIdx = new Set(); fetchedUrl = ''; fetchedSummary = '';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('selected', b.dataset.type==='book'));
+  document.querySelectorAll('.status-chip').forEach(c => c.classList.toggle('active', c.classList.contains('reading')));
+  document.getElementById('addInput').value = '';
+  document.getElementById('addInput').placeholder = '책 제목을 입력하세요';
+  document.getElementById('fetchBtn').disabled = false;
+  document.getElementById('fetchBtn').textContent = '가져오기 →';
+  resetPreview();
+}
+function resetPreview() {
+  document.getElementById('previewCard').classList.remove('show');
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorMsg').classList.remove('show');
+}
+
+function showErr(msg) { const e=document.getElementById('errorMsg'); e.textContent=msg; e.classList.add('show'); }
+
+// ── FETCH META ──
+async function fetchMeta() {
+  const input = document.getElementById('addInput').value.trim();
+  if (!input) { showErr('입력값을 넣어주세요'); return; }
+  document.getElementById('errorMsg').classList.remove('show');
+  document.getElementById('previewCard').classList.remove('show');
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('loadingLabel').textContent = '정보를 가져오는 중...';
+  document.getElementById('fetchBtn').disabled = true;
+
+  try {
+    let meta;
+    if (addType === 'book') meta = await fetchBook(input);
+    else if (addType === 'youtube') meta = await fetchYoutube(input);
+    else meta = await fetchArticle(input);
+
+    // description을 기본 summary로 사용
+    if (!meta.summary && meta.description) {
+      meta.summary = meta.description;
+    }
+
+    // YouTube → Gemini로 요약 (자막 있으면 자막 기반, 없으면 제목/설명 기반)
+    if (addType === 'youtube' && getGeminiKey()) {
+      document.getElementById('loadingLabel').textContent = 'Gemini가 분석 중...';
+      try {
+        const ai = await summarizeYoutubeWithGemini(meta.title, meta.creator, meta.description || '', meta.transcript || null);
+        if (ai) {
+          meta.summary = ai.summary;
+          meta.tags = ai.tags || meta.tags;
+          if (!ai.usedTranscript) meta.summary = '(자막 없음 — 제목 기반 요약) ' + meta.summary;
+        }
+      } catch(e) { console.warn('Gemini 요약 실패:', e.message); }
+    }
+
+    // 책·아티클 → Claude로 요약
+    if (addType !== 'youtube' && getApiKey() && (meta.description || meta.title)) {
+      document.getElementById('loadingLabel').textContent = 'Claude가 요약 중...';
+      try {
+        const ai = await aiSummarize(addType, meta.title, meta.creator, meta.description || '');
+        if (ai) { meta.summary = ai.summary; meta.tags = ai.tags || meta.tags; }
+      } catch(e) { console.warn('Claude 요약 실패:', e.message); }
+    }
+
+    showPreview(meta);
+  } catch(e) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('fetchBtn').disabled = false;
+    showErr(e.message || '정보를 가져오지 못했습니다');
+  }
+}
+
+// Google Books
+async function fetchBook(title) {
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=1`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.items?.length) return { title, creator:'', tags:[], description:'', url:'' };
+  const info = data.items[0].volumeInfo;
+  return {
+    title: info.title || title,
+    creator: (info.authors||[]).join(', '),
+    description: info.description || '',
+    tags: [],
+    url: info.infoLink || '',
+  };
+}
+
+// YouTube oEmbed + description + transcript
+async function fetchYoutube(url) {
+  if (!url.match(/youtube\.com|youtu\.be/i)) throw new Error('유튜브 URL이 아닌 것 같아요');
+  const oembed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+  if (!oembed.ok) throw new Error('유튜브 정보를 가져오지 못했어요');
+  const data = await oembed.json();
+
+  let description = '';
+  let transcript = null;
+
+  // description 가져오기
+  try {
+    const content = await fetchViaProxy(url);
+    if (content) description = extractMeta(content, 'og:description') || '';
+  } catch { /* ok */ }
+
+  // 자막 가져오기
+  const videoId = extractVideoId(url);
+  if (videoId) {
+    document.getElementById('loadingLabel').textContent = '자막 가져오는 중...';
+    transcript = await getYoutubeTranscript(videoId);
+  }
+
+  fetchedUrl = url;
+  return { title: data.title, creator: data.author_name, description, transcript, tags: [], url };
+}
+
+// Article
+async function fetchArticle(rawUrl) {
+  let url = rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl;
+  fetchedUrl = url;
+  let title='', creator='', description='';
+  try {
+    const html = await fetchViaProxy(url) || '';
+    title = extractMeta(html,'og:title') || extractMeta(html,'twitter:title') || extractTagContent(html,'title') || url;
+    creator = extractMeta(html,'og:site_name') || new URL(url).hostname.replace('www.','');
+    description = extractMeta(html,'og:description') || extractMeta(html,'description') || '';
+  } catch {
+    title = url;
+    try { creator = new URL(url).hostname.replace('www.',''); } catch {}
+  }
+  return { title, creator, description, tags: [], url };
+}
+
+function extractMeta(html, prop) {
+  if (!html) return '';
+  const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`,'i'))
+         || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`,'i'));
+  return m ? m[1].trim() : '';
+}
+function extractTagContent(html, tag) {
+  if (!html) return '';
+  const m = html.match(new RegExp(`<${tag}[^>]*>([^<]+)</${tag}>`,'i'));
+  return m ? m[1].trim() : '';
+}
+
+// ── SHOW PREVIEW ──
+function showPreview(meta) {
+  document.getElementById('loadingState').style.display = 'none';
+  pendingTags = [...(meta.tags||[])];
+  removedTagIdx = new Set();
+  fetchedUrl = meta.url || fetchedUrl;
+  fetchedSummary = meta.summary || '';
+
+  document.getElementById('previewTitle').value = meta.title || '';
+  document.getElementById('previewCreator').value = meta.creator || '';
+  const labels = { book:'저자', youtube:'채널', article:'출처' };
+  document.getElementById('creatorLabel').textContent = labels[addType] || '출처';
+
+  const sumBox = document.getElementById('previewSummary');
+  if (meta.summary) {
+    sumBox.textContent = meta.summary;
+    sumBox.classList.remove('summary-placeholder');
+  } else {
+    sumBox.innerHTML = '<span class="summary-placeholder">내용을 가져오지 못했어요. 직접 입력하거나 나중에 메모란에 추가할 수 있어요.</span>';
+  }
+
+  renderAutoTags();
+  document.getElementById('previewCard').classList.add('show');
+}
+
+function renderAutoTags() {
+  document.getElementById('autoTags').innerHTML = pendingTags.length
+    ? pendingTags.map((t,i) => `<span class="auto-tag${removedTagIdx.has(i)?' removed':''}" onclick="toggleTag(${i})">${esc(t)}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--text-muted)">태그 없음 (상세 화면에서 추가 가능)</span>';
+}
+function toggleTag(i) {
+  if (removedTagIdx.has(i)) removedTagIdx.delete(i); else removedTagIdx.add(i);
+  renderAutoTags();
+}
+
+// ── SAVE ──
+function saveFromPreview() {
+  const title = document.getElementById('previewTitle').value.trim();
+  if (!title) { showErr('제목을 입력해주세요'); return; }
+  const item = {
+    id: Date.now().toString(),
+    type: addType,
+    title,
+    creator: document.getElementById('previewCreator').value.trim(),
+    url: fetchedUrl,
+    summary: fetchedSummary,
+    note: '',
+    status: addStatus,
+    tags: pendingTags.filter((_,i) => !removedTagIdx.has(i)),
+    rating: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  items.unshift(item);
+  save(); renderItems(); closeAddModal();
+  showToast('저장됐습니다 🎉 카드를 클릭해서 메모를 남겨보세요');
+}
+
+// ── DELETE ──
+function deleteItem(id) {
+  if (!confirm('이 항목을 삭제할까요?')) return;
+  items = items.filter(i=>i.id!==id);
+  save(); renderItems(); showToast('삭제됐습니다');
+}
+
+// ── DETAIL MODAL ──
+function openDetail(id) {
+  const item = items.find(i=>i.id===id); if(!item) return;
+  currentDetailId = id;
+  detailTags = [...(item.tags||[])];
+  detailRating = item.rating||0;
+  const tm = TYPE_META[item.type]||{};
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-type-bar"><span class="type-badge ${item.type}">${tm.icon} ${tm.label}</span></div>
+    <div class="detail-title">${esc(item.title)}</div>
+    ${item.creator?`<div class="detail-creator">by ${esc(item.creator)}</div>`:''}
+    ${item.url?`<a class="detail-url" href="${esc(item.url)}" target="_blank">🔗 원문 보기 ↗</a>`:''}
+
+    ${item.summary ? `
+    <div class="detail-summary">
+      <div class="detail-summary-label">✨ 요약</div>
+      ${esc(item.summary)}
+    </div>` : ''}
+
+    <div class="sec-label" style="margin-bottom:8px">상태</div>
+    <div class="status-selector">
+      <div class="status-opt want ${item.status==='want'?'active':''}" onclick="setDetailStatus('want',this)">🔖 나중에</div>
+      <div class="status-opt reading ${item.status==='reading'?'active':''}" onclick="setDetailStatus('reading',this)">📖 진행 중</div>
+      <div class="status-opt completed ${item.status==='completed'?'active':''}" onclick="setDetailStatus('completed',this)">✅ 완료</div>
+    </div>
+
+    <div class="sec-label" style="margin-bottom:8px">평점</div>
+    <div class="rating-wrap" id="detailRating">
+      ${[1,2,3,4,5].map(v=>`<span class="star${detailRating>=v?' active':''}" onclick="setDetailRating(${v})">★</span>`).join('')}
+    </div>
+
+    <div class="sec-label" style="margin-bottom:8px">태그</div>
+    <div style="margin-bottom:16px">
+      <div class="tag-input-wrap">
+        <input type="text" id="detailTagInput" placeholder="태그 추가..." onkeydown="if(event.key==='Enter'){event.preventDefault();addDetailTag()}">
+        <button class="tag-add-btn" onclick="addDetailTag()">추가</button>
+      </div>
+      <div class="tags-list" id="detailTagsList"></div>
+    </div>
+
+    <div class="sec-label" style="margin-bottom:8px">메모 & 핵심 인사이트</div>
+    <textarea class="notes-area" id="detailNote" placeholder="읽으면서 느낀 점, 기억하고 싶은 내용, 핵심 인사이트...">${esc(item.note||'')}</textarea>
+
+    <div class="modal-footer">
+      <div style="font-size:12px;color:var(--text-muted)">${new Date(item.createdAt).toLocaleDateString('ko-KR')}에 추가됨</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeDetailModal()">닫기</button>
+        <button class="btn btn-primary" onclick="saveDetail()">저장</button>
+      </div>
+    </div>
+  `;
+  renderDetailTags();
+  document.getElementById('detailModal').classList.add('open');
+}
+function closeDetailModal() { document.getElementById('detailModal').classList.remove('open'); currentDetailId=null; }
+
+function setDetailStatus(s, el) {
+  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  const item = items.find(i=>i.id===currentDetailId);
+  if (item) { item.status=s; save(); renderItems(); }
+}
+function setDetailRating(v) {
+  detailRating = v;
+  document.querySelectorAll('#detailRating .star').forEach((s,i) => s.classList.toggle('active', i<v));
+}
+function addDetailTag() {
+  const val = document.getElementById('detailTagInput').value.trim();
+  if (!val || detailTags.includes(val)) return;
+  detailTags.push(val);
+  document.getElementById('detailTagInput').value='';
+  renderDetailTags();
+}
+function removeDetailTag(t) { detailTags=detailTags.filter(x=>x!==t); renderDetailTags(); }
+function renderDetailTags() {
+  const el=document.getElementById('detailTagsList'); if(!el) return;
+  el.innerHTML = detailTags.map(t=>`<span class="tag-item">${esc(t)}<span class="tag-remove" onclick="removeDetailTag('${esc(t)}')">×</span></span>`).join('');
+}
+function saveDetail() {
+  const item=items.find(i=>i.id===currentDetailId); if(!item) return;
+  item.note=document.getElementById('detailNote').value.trim();
+  item.tags=[...detailTags];
+  item.rating=detailRating;
+  item.updatedAt=Date.now();
+  save(); renderItems();
+  showToast('저장됐습니다 ✅');
+  closeDetailModal();
+}
+
+// ── TOAST ──
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.className='toast', 2800);
+}
+
+// ── OVERLAY CLOSE ──
+['addModal','detailModal','settingsModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => { if(e.target===e.currentTarget) document.getElementById(id).classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['addModal','detailModal','settingsModal'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  if (e.key==='n' && !e.target.matches('input,textarea,select')) openAddModal();
+});
+
+// ── INIT ──
+updateApiDot();
+renderItems();
+</script>
+</body>
+</html>
