@@ -1030,31 +1030,15 @@ async function fetchBook(title) {
   };
 }
 
-// YouTube oEmbed + description + transcript
+// YouTube oEmbed (description/transcript는 더이상 안 가져옴 - Gemini가 영상 직접 분석)
 async function fetchYoutube(url) {
   if (!url.match(/youtube\.com|youtu\.be/i)) throw new Error('유튜브 URL이 아닌 것 같아요');
   const oembed = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
   if (!oembed.ok) throw new Error('유튜브 정보를 가져오지 못했어요');
   const data = await oembed.json();
 
-  let description = '';
-  let transcript = null;
-
-  // description 가져오기
-  try {
-    const content = await fetchViaProxy(url);
-    if (content) description = extractMeta(content, 'og:description') || '';
-  } catch { /* ok */ }
-
-  // 자막 가져오기
-  const videoId = extractVideoId(url);
-  if (videoId) {
-    document.getElementById('loadingLabel').textContent = '자막 가져오는 중...';
-    transcript = await getYoutubeTranscript(videoId);
-  }
-
   fetchedUrl = url;
-  return { title: data.title, creator: data.author_name, description, transcript, tags: [], url };
+  return { title: data.title, creator: data.author_name, description: '', transcript: null, tags: [], url };
 }
 
 // Article
